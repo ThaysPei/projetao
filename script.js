@@ -1,3 +1,52 @@
+class Item {
+    constructor(name, price, description = '') {
+        this.name = name;
+        this.price = price;
+        this.description = description;
+        this.quantity = 1;
+    }
+
+    getSubtotal() {
+        return this.price * this.quantity;
+    }
+}
+
+class Cart {
+    constructor() {
+        this.items = [];
+    }
+
+    addItem(item) {
+        const existingItem = this.items.find(cartItem => cartItem.name === item.name);
+
+        if (existingItem) {
+            existingItem.quantity += 1;
+        } else {
+            this.items.push(item);
+        }
+    }
+
+    removeItem(itemName) {
+        const index = this.items.findIndex(item => item.name === itemName);
+        
+        if (index !== -1) {
+            if (this.items[index].quantity > 1) {
+                this.items[index].quantity -= 1;
+            } else {
+                this.items.splice(index, 1);
+            }
+        }
+    }
+
+    getTotal() {
+        return this.items.reduce((total, item) => total + item.getSubtotal(), 0);
+    }
+
+    getItemCount() {
+        return this.items.reduce((count, item) => count + item.quantity, 0);
+    }
+}
+
 const menu = document.getElementById("menu");
 const cartBtn = document.getElementById("cart-btn");
 const cartModal = document.getElementById("cart-modal");
@@ -9,99 +58,81 @@ const cartCounter = document.getElementById("cart-count");
 const addressInput = document.getElementById("address");
 const addressWarn = document.getElementById("address-warn");
 
+const cart = new Cart();
 
- let cart = [];
+cartBtn.addEventListener("click", () => {
+    cartModal.style.display = "flex";
+    updateCartModal();
+});
 
-
-
-
-//abrir o modal do carrinho
-cartBtn.addEventListener("click", function () {
-    cartModal.style.display = "flex"
-})
-
-
-//fechar o modal do carrinho
-cartModal.addEventListener("click", function (event) {
+cartModal.addEventListener("click", (event) => {
     if (event.target === cartModal) {
-        cartModal.style.display = "none"
+        cartModal.style.display = "none";
     }
-})
+});
 
-closeModalBtn.addEventListener("click", function () {
-    cartModal.style.display = "none"
-})
+closeModalBtn.addEventListener("click", () => {
+    cartModal.style.display = "none";
+});
 
-
-menu.addEventListener("click", function (event) {
-    // console.log(event.target);
-    let parentButton = event.target.closest(".add-to-cart-btn")
+menu.addEventListener("click", (event) => {
+    const parentButton = event.target.closest(".add-to-cart-btn");
+    
     if (parentButton) {
-        const name = parentButton.getAttribute("data-name");    
-        const price = parseFloat(parentButton.getAttribute("data-price")) 
+        const name = parentButton.getAttribute("data-name");
+        const price = parseFloat(parentButton.getAttribute("data-price"));
         
-      //adicionar no carrinho 
-      addtoCart(name, price) 
-
-
+        const newItem = new Item(name, price);
+        cart.addItem(newItem);
+        updateCartModal();
     }
-})
+});
 
-
-      //função para adicionar no carrinho
-      function addtoCart(name, price) {
-        const existingItem = cart.find(item => item.name === name)
-
-        if (existingItem) {
-           existingItem.quantity += 1;
-
+function updateCartModal() {
+    cartItemsContainer.innerHTML = "";
+    
+    cart.items.forEach(item => {
+        const cartItemElement = document.createElement("div");
+        cartItemElement.classList.add("cart-item");
         
-        }else{
-
-            cart.push({
-            name,
-            price,
-            quantity: 1,
-        })
-
-        }
-
-      
-
-        updateCartModal()
-
-      }
-
-      //atualiza o carrinho
-
-      function updateCartModal() {
-        cartItemsContainer.innerHTML = "";
-        let total = 0;
-
-
-        cart.forEach(item => {
-             const cartItemElement = document.createElement("div");
-
-             cartItemElement.innerHTML = `
-            <div>
-                <div>
+        cartItemElement.innerHTML = `
+            <div class="cart-item-details">
                 <p>${item.name}</p>
-                <p>${item.quntity}</p>
-                <p>R$ ${item.price}</p>
+                <p>Quantidade: ${item.quantity}</p>
+                <p>R$ ${item.getSubtotal().toFixed(2)}</p>
             </div>
+            <div class="cart-item-actions">
+                <button class="remove-item-btn" data-name="${item.name}">Remover</button>
+            </div>
+        `;
         
-           
-           
-                <div>
-             <button>
-              remover 
-             </button>
-            </div>
-                
-            
-            </div>
-             `
-            cartItemsContainer.appendChild(cartItemElement)
-        })
-      }
-     
+        const removeButton = cartItemElement.querySelector('.remove-item-btn');
+        removeButton.addEventListener('click', () => {
+            cart.removeItem(item.name);
+            updateCartModal();
+        });
+        
+        cartItemsContainer.appendChild(cartItemElement);
+    });
+
+    cartTotal.textContent = cart.getTotal().toFixed(2);
+    cartCounter.textContent = cart.getItemCount();
+}
+
+checkoutBtn.addEventListener('click', () => {
+    if (addressInput.value === '') {
+        addressWarn.style.display = 'block';
+        return;
+    }
+
+    alert('Pedido finalizado com sucesso!');
+    cart.items = [];
+    updateCartModal();
+    cartModal.style.display = 'none';
+});
+
+addressInput.addEventListener('input', () => {
+    if (addressInput.value !== '') {
+        addressWarn.style.display = 'none';
+    }
+});
